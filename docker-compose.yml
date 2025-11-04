@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -6,8 +6,8 @@ services:
     container_name: qna-class-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: perseus
+      POSTGRES_PASSWORD: perseus123
       POSTGRES_DB: qna_class
     ports:
       - "5432:5432"

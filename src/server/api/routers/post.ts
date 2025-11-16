@@ -7,35 +7,77 @@ import {
 } from "~/server/api/trpc";
 
 export const postRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
-
-  create: protectedProcedure
-    .input(z.object({ name: z.string().min(1) }))
+  createPost: protectedProcedure
+    .input(
+      z.object({
+        title: z.string(),
+        description: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.post.create({
+      const { db, session } = ctx;
+      const newPost = await db.post.create({
         data: {
-          name: input.name,
-          createdBy: { connect: { id: ctx.session.user.id } },
+          title: input.title,
+          description: input.description,
+          userId: session?.user.id,
         },
       });
+
+      return newPost;
     }),
 
-  getLatest: protectedProcedure.query(async ({ ctx }) => {
-    const post = await ctx.db.post.findFirst({
-      orderBy: { createdAt: "desc" },
-      where: { createdBy: { id: ctx.session.user.id } },
+  getAllPosts: publicProcedure.query(async ({ ctx }) => {
+    const { db } = ctx;
+    const posts = await db.post.findMany({
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        createdAt: true,
+        author: {
+          select: {
+            username: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    return post ?? null;
+    return posts;
   }),
 
-  getSecretMessage: protectedProcedure.query(() => {
-    return "you can now see this secret message!";
-  }),
+  getPostById: publicProcedure
+    .input(
+      z.object({
+        postId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { db } = ctx;
+      const { postId } = input;
+
+      const post = await db.post.findUnique({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          createdAt: true,
+          author: {
+            select: {
+              username: true,
+              image: true,
+            },
+          },
+        },
+        where: {
+          id: postId,
+        },
+      });
+
+      return post;
+    }),
 });

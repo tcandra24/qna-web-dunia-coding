@@ -15,15 +15,25 @@ datasource db {
 }
 
 model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
+    id          String   @id @default(cuid())
+    title       String
+    description String
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    author      User     @relation(fields: [userId], references: [id])
+    userId      String
+    answers     Answer[]
+}
+
+model Answer {
+    id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
+    body      String
+    author    User     @relation(fields: [userId], references: [id])
+    userId    String
+    question  Post     @relation(fields: [postId], references: [id])
+    postId    String
 }
 
 // Necessary for Next auth
@@ -64,6 +74,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
     posts         Post[]
+    answers       Answer[]
 }
 
 model VerificationToken {

@@ -1,55 +1,48 @@
-import Link from "next/link";
+import { cache } from "react";
 import { AnswerList } from "~/components/shared/AnswerList";
 import { CreateAnswerCard } from "~/components/shared/CreateAnswerCard";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Badge } from "~/components/ui/badge";
+import { PostDetailCard } from "~/components/shared/PostDetailCard";
 
 import { api } from "~/trpc/server";
 
-export default async function PostPage({
-  params,
-}: {
+type PostDetailProps = {
   params: Promise<{ postId: string }>;
-}) {
+};
+
+const getPostDetail = cache(async (postId: string) => {
+  const postDetail = await api.post.getPostById({ postId });
+
+  return postDetail;
+});
+
+export const generateMetadata = async ({ params }: PostDetailProps) => {
   const { postId } = await params;
 
-  const postDetail = await api.post.getPostById({ postId });
+  const postDetail = await getPostDetail(postId);
+
+  return {
+    title: postDetail?.title,
+    description: postDetail?.description,
+  };
+};
+
+export default async function PostPage({ params }: PostDetailProps) {
+  const { postId } = await params;
+
+  const postDetail = await getPostDetail(postId);
 
   return (
     <div className="space-y-8">
       {/* Post Detail Card */}
-      <div className="space-y-6 rounded-xl border p-6 shadow">
-        <div className="flex justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-14">
-              <AvatarFallback>
-                {postDetail?.author.username
-                  ?.split(" ")
-                  .slice(0, 2)
-                  .map((data) => data.charAt(0).toUpperCase())
-                  .join("")}
-              </AvatarFallback>
-              <AvatarImage src={postDetail?.author.image ?? ""} />
-            </Avatar>
-            <div className="space-y-0.5">
-              <Link href={"/profile/" + postDetail?.author.username}>
-                <p className="font-medium">{postDetail?.author.username}</p>
-              </Link>
-              <p className="text-muted-foreground text-sm">
-                {postDetail?.createdAt.toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          <Badge variant={"default"} className="h-fit">
-            Unanswered
-          </Badge>
-        </div>
-
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">{postDetail?.title}</h1>
-          <p>{postDetail?.description}</p>
-        </div>
-      </div>
+      <PostDetailCard
+        postId={postId}
+        createdAt={postDetail?.createdAt ?? new Date()}
+        description={postDetail?.description ?? ""}
+        title={postDetail?.title ?? ""}
+        userImage={postDetail?.author.image ?? ""}
+        username={postDetail?.author.username ?? ""}
+        isAnswered={!!postDetail?.answeredAt}
+      />
 
       <CreateAnswerCard postId={postId} />
 
